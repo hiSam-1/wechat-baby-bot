@@ -9,8 +9,6 @@ app = Flask(__name__)
 
 TOKEN = os.environ.get("WECHAT_TOKEN", "baby123456")
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
-
-# 🚀 绝杀锁定：根据你的 cURL 示例，这是大飞官方云端聊天助手的绝对正确网址！
 DIFY_API_URL = "https://api.dify.ai/v1/chat-messages"
 
 @app.route("/", methods=["GET", "POST"])
@@ -47,26 +45,36 @@ def wechat_auth():
             payload = {
                 "inputs": {},
                 "query": content,
-                "response_mode": "blocking", # 微信不支持流式，强制必须用阻塞模式秒回整体文本
-                "user": from_user            # 用微信加密ID作为用户标识，大飞能完美记住上下文聊天记忆！
+                "response_mode": "blocking",
+                "user": from_user
             }
             
             try:
-                # 呼叫官方大飞聊天助手接口
                 response = requests.post(DIFY_API_URL, json=payload, headers=headers, timeout=4.7)
                 
                 if response.status_code != 200:
-                    ai_reply = f"🚨 大飞拒绝连接！状态码: {response.status_code}，原因: {response.text[:100]}"
+                    ai_reply = f"🚨 大飞拒绝连接！状态码: {response.status_code}"
                 else:
                     res_json = response.json()
-                    # 🚀 聊天助手的黄金标准：答案直接就在 answer 盒子里！
                     if "answer" in res_json:
-                        ai_reply = res_json["answer"]
+                        raw_reply = res_json["answer"]
+                        
+                        # 🚀 1. 擦除文本中所有的 * 号
+                        processed_reply = raw_reply.replace("*", "")
+                        
+                        # 🚀 2. 智能名字替换：若未设置名字时，将所有类似 [我的名字] 的占位符默认替换为 "宝宝"
+                        name_placeholders = ["[我的名字]", "【我的名字】", "我的名字", "[username]", "{username}"]
+                        for placeholder in name_placeholders:
+                            processed_reply = processed_reply.replace(placeholder, "宝宝")
+                        
+                        # 🚀 3. 保底防御：万一残留了单边的括号，直接去掉
+                        ai_reply = processed_reply.replace("[", "").replace("]", "")
+                        
                     else:
-                        ai_reply = f"🤔 拿到了数据但找不到answer。大飞返回: {str(res_json)[:100]}"
+                        ai_reply = "🤔 大飞没有正常返回文本内容呢。"
                     
             except requests.exceptions.Timeout:
-                ai_reply = "啊哈…… 宝贝刚才的话让人家太兴奋了，脑子里一片空白…… *高潮失神中* 你再对人家说一次嘛~"
+                ai_reply = "啊哈…… 宝贝刚才的话让人家太兴奋了，脑子里一片空白…… 刚刚有点高潮失神了嘛，你再对人家说一次~"
             except Exception as e:
                 ai_reply = f"❌ 脚本运行异常: {str(e)}"
 
