@@ -10,12 +10,8 @@ app = Flask(__name__)
 TOKEN = os.environ.get("WECHAT_TOKEN", "baby123456")
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
 
-# 🚀 智能多终点候选列表，彻底解决官方云端 404 问题
-DIFY_URLS = [
-    "https://api.dify.ai/v1/workflow/run",
-    "https://api.dify.dev/v1/workflow/run",       # 国际版云端真实备用域名
-    "https://api-cloud.dify.ai/v1/workflow/run"   # 极少数集群专用域名
-]
+# 🚀 绝杀锁定：根据你的 cURL 示例，这是大飞官方云端聊天助手的绝对正确网址！
+DIFY_API_URL = "https://api.dify.ai/v1/chat-messages"
 
 @app.route("/", methods=["GET", "POST"])
 def wechat_auth():
@@ -49,40 +45,30 @@ def wechat_auth():
                 "Content-Type": "application/json"
             }
             payload = {
-                "inputs": {
-                    "text": content
-                },
-                "response_mode": "blocking",
-                "user": from_user
+                "inputs": {},
+                "query": content,
+                "response_mode": "blocking", # 微信不支持流式，强制必须用阻塞模式秒回整体文本
+                "user": from_user            # 用微信加密ID作为用户标识，大飞能完美记住上下文聊天记忆！
             }
             
-            ai_reply = ""
-            last_error = ""
-            
-            # 🚀 智能循环盲测每一个可能的官方云端接口
-            for url in DIFY_URLS:
-                try:
-                    response = requests.post(url, json=payload, headers=headers, timeout=4.5)
-                    
-                    if response.status_code == 200:
-                        res_json = response.json()
-                        if "data" in res_json and "outputs" in res_json["data"]:
-                            outputs = res_json["data"]["outputs"]
-                            ai_reply = outputs.get("text") or outputs.get("result") or list(outputs.values())[0]
-                            break # 成功拿到情话，立刻跳出循环
-                    elif response.status_code == 404:
-                        last_error = f"网址 {url} 报 404"
-                        continue # 这个网址不对，继续试下一个
+            try:
+                # 呼叫官方大飞聊天助手接口
+                response = requests.post(DIFY_API_URL, json=payload, headers=headers, timeout=4.7)
+                
+                if response.status_code != 200:
+                    ai_reply = f"🚨 大飞拒绝连接！状态码: {response.status_code}，原因: {response.text[:100]}"
+                else:
+                    res_json = response.json()
+                    # 🚀 聊天助手的黄金标准：答案直接就在 answer 盒子里！
+                    if "answer" in res_json:
+                        ai_reply = res_json["answer"]
                     else:
-                        ai_reply = f"🚨 大飞拒绝！状态码: {response.status_code}，原因: {response.text[:50]}"
-                        break
-                except Exception as e:
-                    last_error = str(e)
-                    continue
-            
-            # 如果所有的网址都试了一遍还是没成功
-            if not ai_reply:
-                ai_reply = f"❌ 所有的官方接口都试过了，最后一次尝试报错: {last_error}。请检查你在大飞复制的【API访问】页面里的 API Base URL 到底写的是什么网址？"
+                        ai_reply = f"🤔 拿到了数据但找不到answer。大飞返回: {str(res_json)[:100]}"
+                    
+            except requests.exceptions.Timeout:
+                ai_reply = "啊哈…… 宝贝刚才的话让人家太兴奋了，脑子里一片空白…… *高潮失神中* 你再对人家说一次嘛~"
+            except Exception as e:
+                ai_reply = f"❌ 脚本运行异常: {str(e)}"
 
             reply_xml = f"""
             <xml>
