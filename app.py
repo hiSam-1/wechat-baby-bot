@@ -42,10 +42,10 @@ def wechat_auth():
             event_type = xml_rec.find("Event").text
             if event_type == "subscribe":
                 # 在这里修改你想对关注用户说的话，以及你的文章标题和链接
-                article_title = "想要了解的宝藏文章标题"
-                article_url = "https://mp.weixin.qq.com/s/xxxxxx"  # 换成你的微信文章链接
+                article_title = "交互的声明与服务协议"
+                article_url = "https://mp.weixin.qq.com/s/fL_pc8h5gfpkPc8SK82YmA"  # 换成你的微信文章链接
                 
-                ai_reply = f"🎉 终于等到你啦，宝宝！欢迎关注！\n\n👇 推荐你阅读我的精选文章：\n<a href='{article_url}'>👉 点击这里阅读: {article_title}</a>"
+                ai_reply = f"🎉 欢迎关注！\n\n👇 请阅读关于自愿参与本公众号交互的声明与服务协议：\n<a href='{article_url}'>👉 点击这里阅读: {article_title}</a>"
         
         # ======= 🧩 原有逻辑：用户发送文本消息（保持不变） =======
         elif msg_type == "text":
