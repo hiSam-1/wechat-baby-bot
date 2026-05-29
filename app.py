@@ -62,13 +62,19 @@ def wechat_auth():
                         # 🚀 1. 擦除文本中所有的 * 号
                         processed_reply = raw_reply.replace("*", "")
                         
-                        # 🚀 2. 智能名字替换：若未设置名字时，将所有类似 [我的名字] 的占位符默认替换为 "宝宝"
+                        # 🚀 2. 智能名字替换：将所有可能的名字占位符默认替换为 "宝宝"
                         name_placeholders = ["[我的名字]", "【我的名字】", "我的名字", "[username]", "{username}"]
                         for placeholder in name_placeholders:
                             processed_reply = processed_reply.replace(placeholder, "宝宝")
                         
-                        # 🚀 3. 保底防御：万一残留了单边的括号，直接去掉
-                        ai_reply = processed_reply.replace("[", "").replace("]", "")
+                        # 🚀 3. 【核心修复】：彻底擦除由于占位符引发的各种符号（中英文双引号、括号）
+                        processed_reply = processed_reply.replace("“宝宝”", "宝宝")  # 直接干掉包裹着的中文双引号
+                        processed_reply = processed_reply.replace('"宝宝"', "宝宝")  # 干掉英文双引号
+                        processed_reply = processed_reply.replace("“", "").replace("”", "") # 顺便清除所有单边漏网的双引号
+                        processed_reply = processed_reply.replace('"', "")
+                        processed_reply = processed_reply.replace("[", "").replace("]", "") # 清除残余中括号
+                        
+                        ai_reply = processed_reply
                         
                     else:
                         ai_reply = "🤔 大飞没有正常返回文本内容呢。"
