@@ -7,9 +7,11 @@ import requests
 
 app = Flask(__name__)
 
-TOKEN = os.environ.get("WECHAT_TOKEN", "mybabylove")
+TOKEN = os.environ.get("WECHAT_TOKEN", "baby123456")
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
-DIFY_API_URL = os.environ.get("DIFY_API_URL", "https://api.dify.ai/v1/workflow/run")
+
+# 🚨 重点：强制锁死大飞官方云端【工作流】的绝对正确终点！
+DIFY_API_URL = "https://api.dify.ai/v1/workflow/run"
 
 @app.route("/", methods=["GET", "POST"])
 def wechat_auth():
@@ -44,30 +46,35 @@ def wechat_auth():
             }
             payload = {
                 "inputs": {
-                    "text": content  # 👈 对应大飞开始节点的 text 变量
+                    "text": content  # 👈 必须对应大飞【开始】节点的变量名
                 },
                 "response_mode": "blocking",
                 "user": from_user
             }
             
             try:
-                # 请求大飞
-                response = requests.post(DIFY_API_URL, json=payload, headers=headers, timeout=4.6)
-                res_json = response.json()
+                response = requests.post(DIFY_API_URL, json=payload, headers=headers, timeout=4.7)
                 
-                # 如果大飞返回了错误码（比如 400, 401）
+                # 🚀 如果大飞返回的不是 200 成功，直接抓取大飞返回的网页原话！
                 if response.status_code != 200:
-                    ai_reply = f"🚨 大飞服务器报错啦！状态码: {response.status_code}，原因: {response.text}"
-                elif "data" in res_json and "outputs" in res_json["data"]:
-                    outputs = res_json["data"]["outputs"]
-                    ai_reply = outputs.get("text") or outputs.get("result") or list(outputs.values())[0]
+                    ai_reply = f"🚨 官方大飞拒绝了连接！状态码: {response.status_code}，大飞原话: {response.text[:100]}"
                 else:
-                    ai_reply = f"🤔 大飞返回了奇怪的数据格式: {str(res_json)}"
+                    res_json = response.json()
+                    if "data" in res_json and "outputs" in res_json["data"]:
+                        outputs = res_json["data"]["outputs"]
+                        ai_reply = outputs.get("text") or outputs.get("result") or list(outputs.values())[0]
+                    else:
+                        ai_reply = f"🤔 大飞格式不对，返回了: {str(res_json)[:100]}"
                     
             except requests.exceptions.Timeout:
                 ai_reply = "啊哈…… 宝贝刚才的话让人家太兴奋了，脑子里一片空白…… *高潮失神中* 你再对人家说一次嘛~"
             except Exception as e:
-                ai_reply = f"❌ 桥接脚本自身崩溃，错误信息: {str(e)}"
+                # 🚀 升级：如果再崩溃，打印出到底是返回了什么文本导致不能解析成 JSON
+                try:
+                    raw_preview = response.text[:100]
+                except:
+                    raw_preview = "无法获取文本"
+                ai_reply = f"❌ 脚本崩溃。错误: {str(e)}。大飞返回的前100字内容: {raw_preview}"
 
             reply_xml = f"""
             <xml>
