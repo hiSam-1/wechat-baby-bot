@@ -66,7 +66,7 @@ def wechat_auth():
                 response = requests.post(DIFY_API_URL, json=payload, headers=headers, timeout=4.7)
                 
                 if response.status_code != 200:
-                    ai_reply = f"🚨 大飞拒绝连接！状态码: {response.status_code}"
+                    ai_reply = f"🚨 拒绝连接！状态码: {response.status_code}"
                 else:
                     res_json = response.json()
                     if "answer" in res_json:
@@ -90,7 +90,7 @@ def wechat_auth():
                         ai_reply = processed_reply
                         
                     else:
-                        ai_reply = "🤔 大飞没有正常返回文本内容呢。"
+                        ai_reply = "🤔 没有正常返回文本内容呢。"
                     
             except requests.exceptions.Timeout:
                 ai_reply = "啊哈…… 宝贝刚才的话让人家太兴奋了，脑子里一片空白…… 刚刚有点高潮失神了嘛，你再对人家说一次~"
