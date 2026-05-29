@@ -9,10 +9,10 @@ app = Flask(__name__)
 
 # 从环境变量中读取微信接头暗号
 TOKEN = os.environ.get("WECHAT_TOKEN", "mybabylove")
-# 核心：大飞的 API 密钥（在 Dify 后台生成的 app-xxx）
+# 大飞工作流的 API 密钥（在工作流页面生成的 app-xxx）
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
-# 核心：大飞的 API 地址（默认是官方云端地址）
-DIFY_API_URL = os.environ.get("DIFY_API_URL", "https://api.dify.ai/v1/chat-messages")
+# 🚀 自动切换为大飞工作流专属的 API 请求终点
+DIFY_API_URL = os.environ.get("DIFY_API_URL", "https://api.dify.ai/v1/workflow/run")
 
 @app.route("/", methods=["GET", "POST"])
 def wechat_auth():
@@ -43,25 +43,36 @@ def wechat_auth():
         if msg_type == "text":
             content = xml_rec.find("Content").text.strip()
             
-            # 🚀 直接呼叫你的大飞（Dify）API
+            # 🚀 呼叫大飞工作流（Workflow）
             headers = {
                 "Authorization": f"Bearer {DIFY_API_KEY}",
                 "Content-Type": "application/json"
             }
             payload = {
-                "inputs": {},
-                "query": content,
-                "response_mode": "blocking", # 阻塞模式，直接获取最终文本
-                "user": from_user            # 用微信加密ID作为大飞的用户标识，大飞能自动记住上下文！
+                # 🎈 核心对齐：把微信内容作为 inputs 传入大飞工作流
+                # 请确保你在大飞工作流的【开始】节点中，设置的输入变量名就叫 text 
+                "inputs": {
+                    "text": content
+                },
+                "response_mode": "blocking",
+                "user": from_user
             }
             
             try:
-                # 呼叫大飞，设置4.5秒超时防止微信断连
                 response = requests.post(DIFY_API_URL, json=payload, headers=headers, timeout=4.5)
-                ai_reply = response.json()["answer"]
+                res_json = response.json()
+                
+                # 🚀 核心对齐：精准剥离出大飞工作流的输出结果
+                # 如果你的结束节点输出变量叫 text，代码会自动抓取
+                if "data" in res_json and "outputs" in res_json["data"]:
+                    outputs = res_json["data"]["outputs"]
+                    # 自动兼容 text 或 text_reply 等常见输出命名
+                    ai_reply = outputs.get("text") or outputs.get("result") or list(outputs.values())[0]
+                else:
+                    ai_reply = "呜……大飞工作流没有给【宝宝】传回有效的输出变量呢。"
+                    
             except Exception as e:
-                # 极端情况下的保底，大飞基本不会触发这里
-                ai_reply = "唔……网络好像调皮了一下，你再重新对我说一次嘛~"
+                ai_reply = "呜……网络好像调皮了一下，你再重新对我说一次嘛~"
 
             # 3. 组装微信 XML 回传
             reply_xml = f"""
