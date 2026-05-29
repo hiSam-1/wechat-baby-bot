@@ -12,7 +12,7 @@ TOKEN = os.environ.get("WECHAT_TOKEN", "mybabylove")
 # 核心：大飞的 API 密钥（在 Dify 后台生成的 app-xxx）
 DIFY_API_KEY = os.environ.get("DIFY_API_KEY")
 # 核心：大飞的 API 地址（默认是官方云端地址）
-DIFY_API_URL = os.environ.get("DIFY_API_URL", "https://api.dify.ai/mcp/server/WrMiYJf2kQ5PYmMw/mcp")
+DIFY_API_URL = os.environ.get("DIFY_API_URL", "https://api.dify.ai/v1/chat-messages")
 
 @app.route("/", methods=["GET", "POST"])
 def wechat_auth():
