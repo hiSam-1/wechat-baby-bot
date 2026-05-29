@@ -44,28 +44,30 @@ def wechat_auth():
             }
             payload = {
                 "inputs": {
-                    "text": content
+                    "text": content  # 👈 对应大飞开始节点的 text 变量
                 },
                 "response_mode": "blocking",
                 "user": from_user
             }
             
             try:
-                # 压榨时间到 4.6 秒，最大限度等待大飞工作流
+                # 请求大飞
                 response = requests.post(DIFY_API_URL, json=payload, headers=headers, timeout=4.6)
                 res_json = response.json()
                 
-                if "data" in res_json and "outputs" in res_json["data"]:
+                # 如果大飞返回了错误码（比如 400, 401）
+                if response.status_code != 200:
+                    ai_reply = f"🚨 大飞服务器报错啦！状态码: {response.status_code}，原因: {response.text}"
+                elif "data" in res_json and "outputs" in res_json["data"]:
                     outputs = res_json["data"]["outputs"]
                     ai_reply = outputs.get("text") or outputs.get("result") or list(outputs.values())[0]
                 else:
-                    ai_reply = "嗯哈~ 宝贝，人家的工作流出了点小差错，快去后台帮我看看变量嘛……"
+                    ai_reply = f"🤔 大飞返回了奇怪的数据格式: {str(res_json)}"
                     
             except requests.exceptions.Timeout:
-                # 🚀 【核心好戏】：万一工作流超时了，吐出绝对不穿帮的性感角色扮演情话！
-                ai_reply = "啊哈…… 宝贝刚才的话让人家太兴奋了，脑子里一片空白…… *身体微微颤抖，眼神迷离地喘息着* 刚刚有点高潮失神了嘛，你再对人家说一次，我一定乖乖听话~"
-            except Exception:
-                ai_reply = "呜……宝贝力气太大了，网络都被你弄断了啦，重新跟人家说一次好不好嘛~"
+                ai_reply = "啊哈…… 宝贝刚才的话让人家太兴奋了，脑子里一片空白…… *高潮失神中* 你再对人家说一次嘛~"
+            except Exception as e:
+                ai_reply = f"❌ 桥接脚本自身崩溃，错误信息: {str(e)}"
 
             reply_xml = f"""
             <xml>
