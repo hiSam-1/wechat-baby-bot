@@ -7,7 +7,7 @@ import requests
 app = Flask(__name__)
 
 # 从环境变量中读取你配置的密码和钥匙
-TOKEN = os.environ.get("WECHAT_TOKEN", "baby123456")
+TOKEN = os.environ.get("WECHAT_TOKEN", "mybabylove")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY")
 SYSTEM_PROMPT = os.environ.get("SYSTEM_PROMPT", "你叫宝宝，是一个性感的成人树洞。")
 
