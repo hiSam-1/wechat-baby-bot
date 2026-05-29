@@ -35,7 +35,20 @@ def wechat_auth():
         from_user = xml_rec.find("FromUserName").text
         msg_type = xml_rec.find("MsgType").text
         
-        if msg_type == "text":
+        ai_reply = ""  # 初始化回复内容
+
+        # ======= 🚀 新增：用户关注事件处理 =======
+        if msg_type == "event":
+            event_type = xml_rec.find("Event").text
+            if event_type == "subscribe":
+                # 在这里修改你想对关注用户说的话，以及你的文章标题和链接
+                article_title = "想要了解的宝藏文章标题"
+                article_url = "https://mp.weixin.qq.com/s/xxxxxx"  # 换成你的微信文章链接
+                
+                ai_reply = f"🎉 终于等到你啦，宝宝！欢迎关注！\n\n👇 推荐你阅读我的精选文章：\n<a href='{article_url}'>👉 点击这里阅读: {article_title}</a>"
+        
+        # ======= 🧩 原有逻辑：用户发送文本消息（保持不变） =======
+        elif msg_type == "text":
             content = xml_rec.find("Content").text.strip()
             
             headers = {
@@ -84,6 +97,8 @@ def wechat_auth():
             except Exception as e:
                 ai_reply = f"❌ 脚本运行异常: {str(e)}"
 
+        # ======= 📤 统一发送 XML 回复 =======
+        if ai_reply:
             reply_xml = f"""
             <xml>
             <ToUserName><![CDATA[{from_user}]]></ToUserName>
