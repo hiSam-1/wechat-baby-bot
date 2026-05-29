@@ -1,19 +1,19 @@
 import os
 import hashlib
-import xml.etTree.ElementTree as ET
+import xml.etree.ElementTree as ET
 from flask import Flask, request, make_response
 import requests
 
 app = Flask(__name__)
 
-# 从环境变量中读取你配置的“暗号”
-TOKEN = os.environ.get("WECHAT_TOKEN", "my_baby_token_123")
+# 从环境变量中读取你配置的密码和钥匙
+TOKEN = os.environ.get("WECHAT_TOKEN", "baby123456")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY")
 SYSTEM_PROMPT = os.environ.get("SYSTEM_PROMPT", "你叫宝宝，是一个性感的成人树洞。")
 
 @app.route("/", methods=["GET", "POST"])
 def wechat_auth():
-    # 1. 微信公众号接入验证 (GET请求)
+    # 微信接入验证 (GET)
     if request.method == "GET":
         signature = request.args.get("signature", "")
         timestamp = request.args.get("timestamp", "")
@@ -26,9 +26,9 @@ def wechat_auth():
         
         if sha1 == signature:
             return make_response(echostr)
-        return "认证失败"
+        return "验证失败"
 
-    # 2. 处理用户发送的消息 (POST请求)
+    # 处理用户发送的消息 (POST)
     if request.method == "POST":
         xml_data = request.data
         xml_rec = ET.fromstring(xml_data)
@@ -37,11 +37,10 @@ def wechat_auth():
         from_user = xml_rec.find("FromUserName").text
         msg_type = xml_rec.find("MsgType").text
         
-        # 只处理文本消息
         if msg_type == "text":
             content = xml_rec.find("Content").text
             
-            # 请求 OpenRouter 获大尺度 AI 回复
+            # 请求 OpenRouter 大尺度 AI 模型
             headers = {
                 "Authorization": f"Bearer {OPENROUTER_KEY}",
                 "Content-Type": "application/json"
@@ -55,12 +54,12 @@ def wechat_auth():
             }
             
             try:
-                response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=15)
+                response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=12)
                 ai_reply = response.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                ai_reply = "嗯哈~ 宝宝刚才有点开小差，你再说一遍嘛..."
+            except Exception:
+                ai_reply = "呜……宝宝刚才走神了，你再疼疼我、重新说一遍嘛~"
 
-            # 组装微信专用的 XML 格式返回给用户
+            # 组装返回给微信用户的 XML
             reply_xml = f"""
             <xml>
             <ToUserName><![CDATA[{from_user}]]></ToUserName>
@@ -77,4 +76,5 @@ def wechat_auth():
         return "success"
 
 if __name__ == "__main__":
+    # Hugging Face 默认只暴露 7860 端口，必须用这个端口运行
     app.run(host="0.0.0.0", port=7860)
